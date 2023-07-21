@@ -1,8 +1,10 @@
 use game::Game;
 use ggez::{event, ContextBuilder};
 
+mod constants;
 mod game;
 mod location;
+mod orientation;
 mod world;
 
 fn main() {

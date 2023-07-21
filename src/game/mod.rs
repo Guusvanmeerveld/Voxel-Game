@@ -5,7 +5,10 @@ use ggez::{
 };
 use rand::Rng;
 
-use crate::world::World;
+use crate::{
+    constants::{CHUNK_SIZE, WORLD_SIZE},
+    world::{GeneratorConfig, World, WorldGenerator},
+};
 
 pub struct Game {
     world: World,
@@ -15,7 +18,11 @@ impl Game {
     pub fn new() -> Self {
         let seed: u64 = rand::thread_rng().gen();
 
-        let world = World::new(seed);
+        let config = GeneratorConfig::new(seed, WORLD_SIZE, CHUNK_SIZE);
+
+        let mut world_gen = WorldGenerator::new(config);
+
+        let world = world_gen.generate();
 
         Self { world }
     }

@@ -1,64 +1,89 @@
 use ndarray::Array3;
 
-use noise::{NoiseFn, Perlin};
-
-use crate::{
-    location::{self, Location},
-    world::voxel::VoxelType,
-};
+use crate::{constants::CHUNK_SIZE, location::Location};
 
 use super::voxel::Voxel;
 
-fn scale_coord(coord: usize) -> f64 {
-    (coord as f64) / (5 as f64)
+pub struct Chunks {
+    chunks: Vec<Chunk>,
+}
+
+impl From<Vec<Chunk>> for Chunks {
+    fn from(chunks: Vec<Chunk>) -> Self {
+        Self::new(chunks)
+    }
+}
+
+impl Chunks {
+    pub fn new<C: IntoIterator<Item = Chunk>>(iter: C) -> Self {
+        let chunks: Vec<_> = iter.into_iter().collect();
+
+        Self { chunks }
+    }
+
+    pub fn get_location(&self, location: (isize, isize)) -> Option<&Chunk> {
+        self.chunks
+            .iter()
+            .find(|chunk| chunk.location() == &location)
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, Chunk> {
+        self.chunks.iter()
+    }
 }
 
 pub struct Chunk {
     voxels: Array3<Voxel>,
+    location: (isize, isize),
 }
 
 impl Default for Chunk {
     fn default() -> Self {
-        Self {
-            voxels: Array3::<Voxel>::default((16, 16, 256)),
-        }
+        Self::new((0, 0), CHUNK_SIZE)
     }
 }
 
 impl Chunk {
-    pub fn set(&mut self, loc: &Location, voxel: Voxel) {
-        self.voxels[[loc.x(), loc.z(), loc.y()]] = voxel;
+    pub fn new(location: (isize, isize), size: (usize, usize, usize)) -> Self {
+        Self {
+            voxels: Array3::<Voxel>::default((size.0, size.2, size.1)),
+            location,
+        }
     }
 
-    pub fn get(&mut self, loc: &Location) -> &Voxel {
-        &self.voxels[[loc.x(), loc.z(), loc.y()]]
+    pub fn set(&mut self, loc: &Location, voxel: Voxel) -> Option<()> {
+        if loc.is_inside(self) {
+            let (x, y, z) = loc.relative_inside(self);
+
+            self.voxels[[x, z, y]] = voxel;
+
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    pub fn get(&self, loc: &Location) -> Option<&Voxel> {
+        if loc.is_inside(self) {
+            let (x, y, z) = loc.relative_inside(self);
+
+            Some(&self.voxels[[x, z, y]])
+        } else {
+            None
+        }
     }
 
     pub fn empty() -> Self {
         Self::default()
     }
 
-    pub fn generate(seed: u32) -> Self {
-        let perlin = Perlin::new(seed);
+    pub fn location(&self) -> &(isize, isize) {
+        &self.location
+    }
 
-        let mut chunk = Self::default();
+    pub fn size(&self) -> (usize, usize, usize) {
+        let dim = self.voxels.dim();
 
-        let dim = chunk.voxels.dim();
-
-        for x in 0..dim.0 {
-            for z in 0..dim.1 {
-                let value = perlin.get([scale_coord(x), scale_coord(z)]);
-
-                let normalized_value = ((value + 1.0) / 2.0) * 256.0;
-
-                println!("Height level at ({}, {}) is {}", x, z, normalized_value);
-
-                let location = Location::new(x, (normalized_value as usize).saturating_sub(1), z);
-
-                chunk.set(&location, Voxel::new(VoxelType::Ground));
-            }
-        }
-
-        chunk
+        (dim.0, dim.2, dim.1)
     }
 }

@@ -1,31 +1,40 @@
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use crate::location::Location;
 
-use self::chunk::Chunk;
+use self::{chunk::Chunks, player::Players, voxel::Voxel};
 
-const CHUNK_COUNT: usize = 1;
+pub use self::{
+    chunk::Chunk,
+    generator::{GeneratorConfig, WorldGenerator},
+};
 
 mod chunk;
+mod generator;
 mod player;
 mod voxel;
 
 pub struct World {
-    chunks: Vec<Chunk>,
+    chunks: Chunks,
+    players: Players,
 }
 
 impl World {
-    pub fn new(seed: u64) -> Self {
-        let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-        let mut chunks = Vec::new();
-
-        for _ in 0..CHUNK_COUNT {
-            let seed: u32 = rng.gen();
-
-            let chunk = Chunk::generate(seed);
-
-            chunks.push(chunk)
+    pub fn new<C: Into<Chunks>, P: Into<Players>>(chunks: C, players: P) -> Self {
+        Self {
+            chunks: chunks.into(),
+            players: players.into(),
         }
+    }
 
-        Self { chunks }
+    pub fn players(&self) -> &Players {
+        &self.players
+    }
+
+    // Get a voxel at a given location in the world
+    pub fn get_location(&self, location: &Location) -> Option<&Voxel> {
+        if let Some(chunk) = self.chunks.iter().find(|chunk| location.is_inside(chunk)) {
+            chunk.get(location)
+        } else {
+            None
+        }
     }
 }
