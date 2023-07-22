@@ -3,6 +3,7 @@ use rand::{rngs::StdRng, SeedableRng};
 
 mod chunk;
 mod config;
+mod perlin;
 mod player;
 
 use self::{chunk::ChunkGenerator, player::PlayerGenerator};

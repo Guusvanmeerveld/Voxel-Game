@@ -1,6 +1,6 @@
 use std::{fmt::Display, ops::Range};
 
-use log::info;
+use log::trace;
 use rand::{rngs::StdRng, Rng};
 
 use crate::world::Chunk;
@@ -76,9 +76,14 @@ impl Location {
 
         let location = Location::new(x, relative.1 as isize, z);
 
-        info!(
+        trace!(
             "Relative location ({}, {}, {}) in chunk ({}, {}) is {}",
-            relative.0, relative.1, relative.2, chunk_x, chunk_z, location
+            relative.0,
+            relative.1,
+            relative.2,
+            chunk_x,
+            chunk_z,
+            location
         );
 
         location

@@ -3,8 +3,7 @@ use std::{
     thread,
 };
 
-use log::info;
-use noise::{NoiseFn, Perlin};
+use log::{info, trace};
 
 use rand::{rngs::StdRng, Rng};
 
@@ -13,6 +12,7 @@ use crate::{
     location::Location,
     world::{
         chunk::Chunk,
+        generator::perlin::PerlinNoiseGen,
         voxel::{Voxel, VoxelType},
     },
 };
@@ -22,12 +22,8 @@ use super::GeneratorConfig;
 pub struct ChunkGenerator;
 
 impl ChunkGenerator {
-    fn scale_coord(coord: isize) -> f64 {
-        (coord as f64) / (5 as f64)
-    }
-
     pub fn generate_chunk(location: (isize, isize), seed: u32, config: &GeneratorConfig) -> Chunk {
-        let perlin = Perlin::new(seed);
+        let perlin = PerlinNoiseGen::new(seed, 256);
 
         let mut chunk = Chunk::new(location, config.chunk_size());
 
@@ -39,20 +35,11 @@ impl ChunkGenerator {
             for z in 0..size_z {
                 let world_location = Location::from_chunk(&chunk, (x, 0, z));
 
-                let value = perlin.get([
-                    Self::scale_coord(world_location.x()),
-                    Self::scale_coord(world_location.y()),
-                ]);
+                let surface = perlin.get((world_location.x(), world_location.z()));
 
-                let normalized_value = ((value + 1.0) / 2.0) * 256.0;
+                trace!("Surface level is {}", surface);
 
-                let location = Location::new(
-                    x as isize,
-                    (normalized_value as isize).saturating_sub(1),
-                    z as isize,
-                );
-
-                chunk.set(&location, Voxel::new(VoxelType::Ground));
+                chunk.set(&surface, Voxel::new(VoxelType::Ground));
             }
         }
 
@@ -64,16 +51,15 @@ impl ChunkGenerator {
 
         let world_size = config.world_size();
 
-        let upper_bound = (world_size as isize) / 2;
-        let lower_bound = -((world_size as isize) / 2);
+        let edge = (world_size as isize) / 2;
 
         let seed: u32 = rng.gen();
 
         thread::scope(|scope| -> Result<()> {
             let mut handles = Vec::new();
 
-            for x in lower_bound..upper_bound {
-                for z in lower_bound..upper_bound {
+            for x in -edge..edge {
+                for z in -edge..edge {
                     let handle = scope.spawn(move || Self::generate_chunk((z, x), seed, config));
 
                     handles.push(handle);
