@@ -1,3 +1,4 @@
+use log::info;
 use rand::rngs::StdRng;
 
 use crate::{orientation::Orientation, world::player::Player};
@@ -12,13 +13,22 @@ impl PlayerGenerator {
         id: I,
         config: &GeneratorConfig,
     ) -> Player {
+        let id = id.into();
+
         let location = config.random_location(rng);
+
+        info!(
+            "Adding a player with id '{}' at ({}, {})",
+            id,
+            location.x(),
+            location.z()
+        );
 
         let orientation = Orientation::new(0, 90);
 
         let fov = 60;
 
-        Player::new(location, orientation, fov, id.into())
+        Player::new(location, orientation, fov, id)
     }
 
     pub fn generate_players(rng: &mut StdRng, config: &GeneratorConfig) -> Vec<Player> {

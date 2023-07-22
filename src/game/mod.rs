@@ -22,7 +22,7 @@ impl Game {
 
         let mut world_gen = WorldGenerator::new(config);
 
-        let world = world_gen.generate();
+        let world = world_gen.generate().unwrap();
 
         Self { world }
     }

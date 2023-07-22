@@ -1,5 +1,6 @@
-use std::ops::Range;
+use std::{fmt::Display, ops::Range};
 
+use log::info;
 use rand::{rngs::StdRng, Rng};
 
 use crate::world::Chunk;
@@ -8,6 +9,12 @@ pub struct Location {
     x: isize,
     y: isize,
     z: isize,
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
+    }
 }
 
 impl Location {
@@ -45,6 +52,36 @@ impl Location {
         let (x, z) = chunk.location();
 
         &chunk_z == z && &chunk_x == x && self.y() <= size_y as isize
+    }
+
+    pub fn from_chunk(chunk: &Chunk, relative: (usize, usize, usize)) -> Location {
+        let (chunk_x, chunk_z) = chunk.location();
+        let (size_x, _, size_z) = chunk.size();
+
+        let x_in_chunk = if chunk_x.is_negative() {
+            size_x.saturating_sub(relative.0) as isize
+        } else {
+            relative.0 as isize
+        };
+
+        let x = chunk_x * (size_x as isize) + x_in_chunk;
+
+        let z_in_chunk = if chunk_z.is_negative() {
+            size_z.saturating_sub(relative.2) as isize
+        } else {
+            relative.2 as isize
+        };
+
+        let z = chunk_z * (size_z as isize) + z_in_chunk;
+
+        let location = Location::new(x, relative.1 as isize, z);
+
+        info!(
+            "Relative location ({}, {}, {}) in chunk ({}, {}) is {}",
+            relative.0, relative.1, relative.2, chunk_x, chunk_z, location
+        );
+
+        location
     }
 
     /// The position of this location relative to the given chunk

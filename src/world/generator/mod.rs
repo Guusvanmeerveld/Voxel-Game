@@ -1,3 +1,4 @@
+use log::info;
 use rand::{rngs::StdRng, SeedableRng};
 
 mod chunk;
@@ -5,6 +6,7 @@ mod config;
 mod player;
 
 use self::{chunk::ChunkGenerator, player::PlayerGenerator};
+use crate::error::Result;
 
 pub use config::GeneratorConfig;
 
@@ -31,8 +33,13 @@ impl WorldGenerator {
         self.rng = Self::create_rng_from_seed(seed)
     }
 
-    pub fn generate(&mut self) -> World {
-        let chunks = ChunkGenerator::generate_chunks(&mut self.rng, &self.config);
+    pub fn generate(&mut self) -> Result<World> {
+        info!(
+            "Generating a new world using the seed: {}",
+            self.config.seed()
+        );
+
+        let chunks = ChunkGenerator::generate_chunks(&mut self.rng, &self.config)?;
         let players = PlayerGenerator::generate_players(&mut self.rng, &self.config);
 
         let world = World::new(chunks, players);
@@ -40,6 +47,6 @@ impl WorldGenerator {
         // Reset the rng so we could create the same world again if the function was called again.
         self.set_seed(self.config.seed());
 
-        world
+        Ok(world)
     }
 }
